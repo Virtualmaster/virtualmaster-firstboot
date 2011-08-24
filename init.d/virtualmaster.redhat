@@ -1,0 +1,25 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides: virtualmaster
+# Required-Start: $local_fs
+# Default-Start: S
+# Short-Description: Configures network and users on first boot of VM
+### END INIT INFO
+# Configures network and users on first boot of VM
+# Main tasks are:
+# - set up networking (IP, gateway, nameservers) on first booot
+# - resize root filesystem to actual size of partition
+# - ensure swap partition has swap signature
+# - set root's password
+# - optionaly create users and add ssh keys
+#
+
+case "${1}" in
+	start)
+		if [ -f /etc/virtualmaster.cfg ]; then
+			mount -o remount,rw /
+			/usr/libexec/virtualmaster-firstboot
+			mount -o remount,ro / || true
+		fi
+		;;
+esac

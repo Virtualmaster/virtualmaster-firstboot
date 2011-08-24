@@ -1,0 +1,146 @@
+#!/bin/bash -e
+#
+# Performs the firstboot tasks for both Debian and Red Hat systems.
+#
+
+info() { echo -e " \e[1;32m*\e[0;1m ${*}\e[0m" >&2; }
+warn() { echo -e " \e[1;33m***\e[0;1m ${*}\e[0m" >&2; }
+fail() { echo -e " \e[1;31m***\e[0;1m ${*}\e[0m" >&2; exit 1; }
+
+if ! [ -f /etc/virtualmaster.cfg ]; then
+	info 'firstboot already performed, exiting'
+	exit
+fi
+
+. /etc/virtualmaster.cfg
+
+if [ ${virtualmaster_version} -gt 1 ]; then
+	warn 'This image have been made for an older virtualmaster version.'
+	warn 'That should not be a problem, but in case you experience any'
+	warn 'problems with initial configuration, you know where the problem'
+	warn 'may lie. Good luck!'
+fi
+
+date="$(date +%c)"
+
+v6addr="${virtualmaster_ipv6_address%/*}"
+v6mask="${virtualmaster_ipv6_address#*/}"
+
+if [ -f /etc/debian_version ]; then
+	info 'creating /etc/network/interfaces'
+	info "  IPv4 address: ${virtualmaster_ipv4_address}"
+	info "  IPv4 netmask: ${virtualmaster_ipv4_netmask}"
+	info "  IPv4 gateway: ${virtualmaster_ipv4_gateway}"
+	info "  IPv6 address: ${virtualmaster_ipv6_address}"
+	info "  IPv6 gateway: ${virtualmaster_ipv6_gateway}"
+
+	cat /usr/share/virtualmaster/interfaces.tpl | sed \
+	  -e "s#_virtualmaster_timestamp_#${date}#g" \
+	  -e "s#_virtualmaster_ipv4_address_#${virtualmaster_ipv4_address}#g" \
+	  -e "s#_virtualmaster_ipv4_netmask_#${virtualmaster_ipv4_netmask}#g" \
+	  -e "s#_virtualmaster_ipv4_gateway_#${virtualmaster_ipv4_gateway}#g" \
+	  -e "s#_virtualmaster_ipv6_address_#${v6addr}#g" \
+	  -e "s#_virtualmaster_ipv6_netmask_#${v6mask}#g" \
+	  -e "s#_virtualmaster_ipv6_gateway_#${virtualmaster_ipv6_gateway}#g" \
+		>/etc/network/interfaces
+elif [ -f /etc/redhat-release ]; then
+	info 'creating /etc/sysconfig/network-scripts/ifcfg-eth0'
+	info "  IPv4 address: ${virtualmaster_ipv4_address}"
+	info "  IPv4 netmask: ${virtualmaster_ipv4_netmask}"
+	info "  IPv4 gateway: ${virtualmaster_ipv4_gateway}"
+	info "  IPv6 address: ${virtualmaster_ipv6_address}"
+	info "  IPv6 gateway: ${virtualmaster_ipv6_gateway}"
+
+	cat /usr/share/virtualmaster/ifcfg.tpl | sed \
+	  -e "s#_virtualmaster_timestamp_#${date}#g" \
+	  -e "s#_virtualmaster_ipv4_address_#${virtualmaster_ipv4_address}#g" \
+	  -e "s#_virtualmaster_ipv4_netmask_#${virtualmaster_ipv4_netmask}#g" \
+	  -e "s#_virtualmaster_ipv4_gateway_#${virtualmaster_ipv4_gateway}#g" \
+	  -e "s#_virtualmaster_ipv6_address_#${v6addr}#g" \
+	  -e "s#_virtualmaster_ipv6_netmask_#${v6mask}#g" \
+	  -e "s#_virtualmaster_ipv6_gateway_#${virtualmaster_ipv6_gateway}#g" \
+		>/etc/sysconfig/network-scripts/ifcfg-eth0
+
+	info 'creating /etc/sysconfig/network'
+	cat /usr/share/virtualmaster/network.tpl | sed \
+	  -e "s#_virtualmaster_timestamp_#${date}#g" \
+	  -e "s#_virtualmaster_hostname_#${virtualmaster_hostname}#g" \
+		>/etc/sysconfig/network
+fi
+
+info 'creating /etc/hostname'
+info "  hostname: ${virtualmaster_hostname}"
+echo "${virtualmaster_hostname}" >/etc/hostname
+hostname "${virtualmaster_hostname}"
+
+info 'creating /etc/mailname'
+info "  mailname: ${virtualmaster_hostname}"
+echo "${virtualmaster_hostname}" >/etc/mailname
+
+info 'creating /etc/resolv.conf'
+sed "s#_virtualmaster_timestamp_#${date}#g" \
+	</usr/share/virtualmaster/resolv.tpl \
+	>/etc/resolv.conf
+
+for ns in ${virtualmaster_ipv4_nameservers}; do
+	info "  nameserver: ${ns}"
+	echo "nameserver ${ns}" >>/etc/resolv.conf
+done
+
+info 'creating /etc/hosts'
+short="${virtualmaster_hostname%%.*}"
+cat /usr/share/virtualmaster/hosts.tpl | sed \
+  -e "s#_virtualmaster_timestamp_#${date}#g" \
+  -e "s#_virtualmaster_ipv4_address_#${virtualmaster_ipv4_address}#g" \
+  -e "s#_virtualmaster_ipv6_address_#${v6addr}#g" \
+  -e "s#_virtualmaster_hostname_#${virtualmaster_hostname}#g" \
+  -e "s#_virtualmaster_short_hostname_#${short}#g" \
+	>/etc/hosts
+
+info 'setting up the root user password'
+usermod -p "${virtualmaster_password_root}" root
+
+info 'setting up additional users'
+for user in ${virtualmaster_create_users}; do
+	info "  adding ${user}"
+	info '    account'
+	useradd -ms /bin/bash "${user}"
+	sshkey_var="virtualmaster_ssh_key_${user}"
+	passwd_var="virtualmaster_password_${user}"
+	sshkey="${!sshkey_var}"
+	pass="${!passwd_var}"
+
+	if [ -n "${pass}" ]; then
+		info '    password'
+		usermod -p "${pass}" "${user}"
+	fi
+
+	if [ -n "${sshkey}" ]; then
+		info '    ssh key'
+		mkdir -p "/home/${user}/.ssh"
+		chmod 700 "/home/${user}/.ssh"
+		echo "${sshkey}" >"/home/${user}/.ssh/authorized_keys"
+		chmod 600 "/home/${user}/.ssh/authorized_keys"
+	fi
+done
+
+if ! [ -f /etc/ssh/ssh_host_rsa_key ]; then
+	info 'generating new RSA host key for ssh'
+	ssh-keygen -t rsa -b 2048 -f /etc/ssh/ssh_host_rsa_key -N ''
+fi
+
+if ! [ -f /etc/ssh/ssh_host_dsa_key ]; then
+	info 'generating new DSA host key for ssh'
+	ssh-keygen -t rsa -b 1024 -f /etc/ssh/ssh_host_dsa_key -N ''
+fi
+
+info 'fixing permissions on /etc/virtualmaster.cfg'
+chown 0:0 /etc/virtualmaster.cfg
+chmod 400 /etc/virtualmaster.cfg
+
+info 'moving /etc/virtualmaster.cfg to /etc/virtualmaster.cfg.disabled'
+mv /etc/virtualmaster.cfg /etc/virtualmaster.cfg.disabled
+
+info 'done.'
+
+# EOF
