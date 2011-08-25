@@ -17,7 +17,6 @@ iface eth0 inet static
 	gateway _virtualmaster_ipv4_gateway_
 	post-up ethtool -K eth0 tx off
 
-auto eth0
 iface eth0 inet6 static
 	address _virtualmaster_ipv6_address_
 	netmask _virtualmaster_ipv6_netmask_
