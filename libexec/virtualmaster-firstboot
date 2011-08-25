@@ -82,7 +82,7 @@ sed "s#_virtualmaster_timestamp_#${date}#g" \
 	</usr/share/virtualmaster/resolv.tpl \
 	>/etc/resolv.conf
 
-for ns in ${virtualmaster_ipv4_nameservers}; do
+for ns in ${virtualmaster_ipv4_nameservers} ${virtualmaster_ipv6_resolvers}; do
 	info "  nameserver: ${ns}"
 	echo "nameserver ${ns}" >>/etc/resolv.conf
 done
