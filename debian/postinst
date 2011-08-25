@@ -1,0 +1,5 @@
+#!/bin/sh -e
+
+insserv virtualmaster
+
+# EOF
