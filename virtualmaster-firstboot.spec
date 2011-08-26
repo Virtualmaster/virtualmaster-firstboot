@@ -6,7 +6,6 @@ License:    GPL
 URL:        http://www.virtualmaster.cz
 Group:      System/Boot
 Source:     virtualmaster-firstboot-%{version}.tar.gz
-Requires:   patch
 BuildRoot:  %{_tmppath}/buildroot-%{name}-%{version}
 BuildArch:  noarch
 
@@ -36,10 +35,10 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
-%{_sysconfdir}/init.d/*
-%{_libexecdir}/*
-%{_datadir}/virtualmaster/*
-%doc %{_docdir}/virtualmaster/*
+/usr/libexec/*
+/sbin/*
+/usr/share/virtualmaster/*
+%doc /usr/share/doc/virtualmaster-firstboot/*
 
 %changelog
 * Wed Aug 24 2011 Jan Dvořák <jd@vmin.cz> <0.2> <1>
