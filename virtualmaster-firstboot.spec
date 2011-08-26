@@ -41,13 +41,6 @@ rm -rf %{buildroot}
 %{_datadir}/virtualmaster/*
 %doc %{_docdir}/virtualmaster/*
 
-%preun
-cd /etc/rc.d
-patch -Rr- -i /usr/share/virtualmaster/rc.sysinit.patch
-%post
-cd /etc/rc.d
-patch -r- -i /usr/share/virtualmaster/rc.sysinit.patch
-
 %changelog
 * Wed Aug 24 2011 Jan Dvořák <jd@vmin.cz> <0.2> <1>
 - unified Debian and RedHat

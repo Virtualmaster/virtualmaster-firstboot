@@ -8,8 +8,8 @@ all:
 install:
 	install -D -m755 libexec/virtualmaster-firstboot \
 		${DESTDIR}/usr/libexec/virtualmaster-firstboot
-	install -D -m755 init.d/virtualmaster \
-		${DESTDIR}/etc/init.d/virtualmaster
+	install -D -m755 sbin/init.vmin \
+		${DESTDIR}/sbin/init.vmin
 	install -D -m644 tpl/hosts.tpl \
 		${DESTDIR}/usr/share/virtualmaster/hosts.tpl
 	install -D -m644 tpl/ifcfg.tpl \
@@ -20,8 +20,6 @@ install:
 		${DESTDIR}/usr/share/virtualmaster/network.tpl
 	install -D -m644 tpl/resolv.tpl \
 		${DESTDIR}/usr/share/virtualmaster/resolv.tpl
-	install -D -m644 rc.sysinit.patch \
-		${DESTDIR}/usr/share/virtualmaster/rc.sysinit.patch
 	install -D -m644 doc/virtualmaster.cfg.sample \
 		${DESTDIR}/usr/share/doc/${package}/virtualmaster.cfg.sample
 

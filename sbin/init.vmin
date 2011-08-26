@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Fake init that executes the firstboot script and resumes boot.
+#
+
+if [ -f /etc/virtualmaster.cfg ]; then
+	# Make root filesystem writable, so that we can alter the configuration.
+	mount -o remount,rw /
+
+	# Run the firstboot.
+	/usr/libexec/virtualmaster-firstboot
+
+	# Act like we did nothing.
+	mount -o remount,ro /
+fi
+
+# Daisy chain to the real init.
+exec /sbin/init
