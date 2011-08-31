@@ -125,6 +125,16 @@ for user in ${virtualmaster_create_users}; do
 	fi
 done
 
+sudo_group='wheel'
+if grep -q '^sudo:' /etc/group; then
+	sudo_group='sudo'
+fi
+
+for user in ${virtualmaster_sudo_users}; do
+	info "adding user ${user} to the ${sudo_group} group"
+	usermod -aG "${sudo_group}" "${user}"
+done
+
 if ! [ -f /etc/ssh/ssh_host_rsa_key ]; then
 	info 'generating new RSA host key for ssh'
 	ssh-keygen -t rsa -b 2048 -f /etc/ssh/ssh_host_rsa_key -N ''
