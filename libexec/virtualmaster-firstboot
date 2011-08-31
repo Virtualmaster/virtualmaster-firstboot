@@ -121,6 +121,7 @@ for user in ${virtualmaster_create_users}; do
 		chmod 700 "/home/${user}/.ssh"
 		echo "${sshkey}" >"/home/${user}/.ssh/authorized_keys"
 		chmod 600 "/home/${user}/.ssh/authorized_keys"
+		chown -R "${user}:${user}" "/home/${user}"
 	fi
 done
 
